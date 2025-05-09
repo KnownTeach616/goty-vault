@@ -69,10 +69,15 @@
 
     function updateDisplay() {
       const type = listTypeSelect.value;
-      listTitle.textContent = `Top 10 of the ${type === 'year' ? 'Year' : 'Decade'}`;
-      gamesDisplay.innerHTML = '';
+      const year = yearInput.value;
+      if (type === 'year') {
+        listTitle.textContent = year ? `Top 10 of ${year}` : `Top 10 of the Year`;
+      } else {
+        listTitle.textContent = 'Top 10 of the Decade';
+      }
 
-      games[type].forEach((game, index) => {
+      gamesDisplay.innerHTML = '';
+      games[type].forEach((game) => {
         const li = document.createElement('li');
         li.className = 'game-item';
         li.textContent = `${game.title} (${game.year})`;
@@ -105,6 +110,9 @@
     }
 
     listTypeSelect.addEventListener('change', updateDisplay);
+    yearInput.addEventListener('input', () => {
+      if (listTypeSelect.value === 'year') updateDisplay();
+    });
 
     window.onload = updateDisplay;
   </script>
