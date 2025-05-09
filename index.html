@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top 10 Games</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f4f4f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    select, input[type="text"], input[type="number"] {
+      padding: 0.5rem;
+      margin: 0.5rem;
+    }
+    .form-section, .games-list {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .game-item {
+      margin: 0.25rem 0;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Top 10 Games Selector</h1>
+  <div class="form-section">
+    <label for="listType">Choose list:</label>
+    <select id="listType">
+      <option value="year">Top 10 of the Year</option>
+      <option value="decade">Top 10 of the Decade</option>
+    </select><br />
+
+    <input type="text" id="gameTitle" placeholder="Game Title" required />
+    <input type="number" id="gameYear" placeholder="Release Year" min="1970" max="2100" />
+    <button onclick="addGame()">Add Game</button>
+  </div>
+
+  <div class="games-list">
+    <h2 id="listTitle">Top 10 of the Year</h2>
+    <ol id="gamesDisplay"></ol>
+  </div>
+
+  <script>
+    const maxGames = 10;
+
+    let games = {
+      year: JSON.parse(localStorage.getItem('top10_year')) || [],
+      decade: JSON.parse(localStorage.getItem('top10_decade')) || []
+    };
+
+    const listTypeSelect = document.getElementById('listType');
+    const titleInput = document.getElementById('gameTitle');
+    const yearInput = document.getElementById('gameYear');
+    const gamesDisplay = document.getElementById('gamesDisplay');
+    const listTitle = document.getElementById('listTitle');
+
+    function updateDisplay() {
+      const type = listTypeSelect.value;
+      listTitle.textContent = `Top 10 of the ${type === 'year' ? 'Year' : 'Decade'}`;
+      gamesDisplay.innerHTML = '';
+
+      games[type].forEach((game, index) => {
+        const li = document.createElement('li');
+        li.className = 'game-item';
+        li.textContent = `${game.title} (${game.year})`;
+        gamesDisplay.appendChild(li);
+      });
+    }
+
+    function addGame() {
+      const type = listTypeSelect.value;
+      const title = titleInput.value.trim();
+      const year = yearInput.value;
+
+      if (!title || !year) {
+        alert("Please enter both title and year.");
+        return;
+      }
+
+      if (games[type].length >= maxGames) {
+        alert("You can only add up to 10 games per list.");
+        return;
+      }
+
+      games[type].push({ title, year });
+      localStorage.setItem(`top10_${type}`, JSON.stringify(games[type]));
+
+      titleInput.value = '';
+      yearInput.value = '';
+
+      updateDisplay();
+    }
+
+    listTypeSelect.addEventListener('change', updateDisplay);
+
+    window.onload = updateDisplay;
+  </script>
+</body>
+</html>
