@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Top 10 Games</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -10,15 +10,30 @@
   <h1>Top 10 Games Selector</h1>
   <div class="form-section">
     <label for="listType">Choose list:</label>
-    <select id="listType">
+    <select id="listType" aria-label="Choose list">
       <option value="year">Top 10 of the Year</option>
       <option value="decade">Top 10 of the Decade</option>
     </select>
 
     <select id="yearOrDecade" aria-label="Year or Decade"></select>
 
-    <input type="text" id="gameTitle" placeholder="Game Title" required />
+    <input type="text" id="gameTitle" placeholder="Game Title" required aria-label="Game Title" />
+
+    <input
+      type="text"
+      id="gameYearInput"
+      placeholder="Year (optional)"
+      aria-label="Year (optional)"
+      pattern="\d{4}"
+      title="Enter a 4-digit year, e.g. 2023"
+    />
+
     <button onclick="addGame()">Add Game</button>
+
+    <label class="append-label" for="appendToggle">
+      <input type="checkbox" id="appendToggle" checked aria-label="Append year/decade to title" />
+      Append year/decade to title
+    </label>
   </div>
 
   <div class="games-list">
@@ -38,15 +53,15 @@
     const listTypeSelect = document.getElementById('listType');
     const yearOrDecadeSelect = document.getElementById('yearOrDecade');
     const titleInput = document.getElementById('gameTitle');
+    const yearInput = document.getElementById('gameYearInput');
     const gamesDisplay = document.getElementById('gamesDisplay');
     const listTitle = document.getElementById('listTitle');
+    const appendToggle = document.getElementById('appendToggle');
 
-    // Populate yearOrDecade select based on listType
     function populateYearOrDecade() {
       const type = listTypeSelect.value;
       yearOrDecadeSelect.innerHTML = '';
       if (type === 'year') {
-        // Years from 1981 to current year
         const currentYear = new Date().getFullYear();
         for (let y = currentYear; y >= 1981; y--) {
           const option = document.createElement('option');
@@ -55,7 +70,6 @@
           yearOrDecadeSelect.appendChild(option);
         }
       } else {
-        // Decades from 1980 to current decade
         const currentYear = new Date().getFullYear();
         const currentDecade = Math.floor(currentYear / 10) * 10;
         for (let d = currentDecade; d >= 1980; d -= 10) {
@@ -69,63 +83,118 @@
 
     function updateDisplay() {
       const type = listTypeSelect.value;
-      const yearOrDecade = yearOrDecadeSelect.value;
+      const filterYearOrDecade = yearOrDecadeSelect.value;
+      const append = appendToggle.checked;
 
       if (type === 'year') {
-        listTitle.textContent = yearOrDecade ? `Top 10 of ${yearOrDecade}` : `Top 10 of the Year`;
+        listTitle.textContent = filterYearOrDecade ? `Top 10 of ${filterYearOrDecade}` : `Top 10 of the Year`;
       } else {
-        listTitle.textContent = yearOrDecade ? `Top 10 of the ${yearOrDecade}s` : 'Top 10 of the Decade';
+        listTitle.textContent = filterYearOrDecade ? `Top 10 of the ${filterYearOrDecade}s` : 'Top 10 of the Decade';
       }
 
       gamesDisplay.innerHTML = '';
 
       games[type].forEach((game, index) => {
-        const li = document.createElement('li');
-        li.className = 'game-item';
+        // Filter by selected year/decade
+        if (
+          !filterYearOrDecade ||
+          game.year === '' ||
+          (type === 'year' && game.year == filterYearOrDecade) ||
+          (type === 'decade' && Math.floor(game.year / 10) * 10 == filterYearOrDecade)
+        ) {
+          const li = document.createElement('li');
+          li.className = 'game-item';
 
-        const textSpan = document.createElement('span');
-        textSpan.textContent = `${game.title} (${game.year})`;
-        li.appendChild(textSpan);
+          const textSpan = document.createElement('span');
+          textSpan.className = 'game-title';
+          textSpan.textContent = game.title;
 
-        // Create action buttons container
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'game-actions';
+          if (append && game.year) {
+            textSpan.textContent += ` (${game.year})`;
+          }
+          li.appendChild(textSpan);
 
-        // Up button
-        const upBtn = document.createElement('button');
-        upBtn.textContent = '↑';
-        upBtn.title = 'Move Up';
-        upBtn.disabled = index === 0;
-        upBtn.onclick = () => moveGame(index, -1);
-        actionsDiv.appendChild(upBtn);
+          // Year edit input (hidden by default)
+          const yearEditInput = document.createElement('input');
+          yearEditInput.type = 'text';
+          yearEditInput.className = 'year-edit-input';
+          yearEditInput.value = game.year;
+          yearEditInput.placeholder = 'Year';
+          yearEditInput.pattern = '\\d{4}';
+          yearEditInput.title = 'Enter a 4-digit year, e.g. 2023';
+          yearEditInput.style.display = 'none';
 
-        // Down button
-        const downBtn = document.createElement('button');
-        downBtn.textContent = '↓';
-        downBtn.title = 'Move Down';
-        downBtn.disabled = index === games[type].length - 1;
-        downBtn.onclick = () => moveGame(index, 1);
-        actionsDiv.appendChild(downBtn);
+          li.appendChild(yearEditInput);
 
-        // Delete button
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '✕';
-        delBtn.title = 'Delete Game';
-        delBtn.onclick = () => deleteGame(index);
-        actionsDiv.appendChild(delBtn);
+          // Actions container
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'game-actions';
 
-        li.appendChild(actionsDiv);
-        gamesDisplay.appendChild(li);
+          // Edit year button
+          const editYearBtn = document.createElement('button');
+          editYearBtn.textContent = '✎';
+          editYearBtn.title = 'Edit appended year';
+          editYearBtn.onclick = () => {
+            if (yearEditInput.style.display === 'none') {
+              yearEditInput.style.display = 'inline-block';
+              yearEditInput.focus();
+              editYearBtn.textContent = '✔';
+            } else {
+              const val = yearEditInput.value.trim();
+              if (val !== '' && !/^\d{4}$/.test(val)) {
+                alert('Please enter a valid 4-digit year or leave empty.');
+                yearEditInput.focus();
+                return;
+              }
+              games[type][index].year = val;
+              localStorage.setItem(`top10_${type}`, JSON.stringify(games[type]));
+              updateDisplay();
+            }
+          };
+          actionsDiv.appendChild(editYearBtn);
+
+          // Up button
+          const upBtn = document.createElement('button');
+          upBtn.textContent = '↑';
+          upBtn.title = 'Move Up';
+          upBtn.disabled = index === 0;
+          upBtn.onclick = () => moveGame(index, -1);
+          actionsDiv.appendChild(upBtn);
+
+          // Down button
+          const downBtn = document.createElement('button');
+          downBtn.textContent = '↓';
+          downBtn.title = 'Move Down';
+          downBtn.disabled = index === games[type].length - 1;
+          downBtn.onclick = () => moveGame(index, 1);
+          actionsDiv.appendChild(downBtn);
+
+          // Delete button
+          const delBtn = document.createElement('button');
+          delBtn.textContent = '✕';
+          delBtn.title = 'Delete Game';
+          delBtn.onclick = () => deleteGame(index);
+          actionsDiv.appendChild(delBtn);
+
+          li.appendChild(actionsDiv);
+          gamesDisplay.appendChild(li);
+        }
       });
     }
 
     function addGame() {
       const type = listTypeSelect.value;
       const title = titleInput.value.trim();
-      const yearOrDecade = yearOrDecadeSelect.value;
+      let yearVal = yearInput.value.trim();
 
-      if (!title || !yearOrDecade) {
-        alert("Please enter both title and year/decade.");
+      if (!title) {
+        alert("Please enter the game title.");
+        return;
+      }
+
+      if (yearVal !== '' && !/^\d{4}$/.test(yearVal)) {
+        alert("Please enter a valid 4-digit year or leave it empty.");
+        yearInput.focus();
         return;
       }
 
@@ -134,17 +203,19 @@
         return;
       }
 
-      // Check duplicate
-      const duplicate = games[type].some(g => g.title.toLowerCase() === title.toLowerCase() && g.year === yearOrDecade);
+      const duplicate = games[type].some(
+        (g) => g.title.toLowerCase() === title.toLowerCase() && g.year === yearVal
+      );
       if (duplicate) {
-        alert("This game with the same year/decade is already in the list.");
+        alert("This game with the same year is already in the list.");
         return;
       }
 
-      games[type].push({ title, year: yearOrDecade });
+      games[type].push({ title, year: yearVal });
       localStorage.setItem(`top10_${type}`, JSON.stringify(games[type]));
 
       titleInput.value = '';
+      yearInput.value = '';
       updateDisplay();
     }
 
@@ -185,6 +256,7 @@
     });
 
     yearOrDecadeSelect.addEventListener('change', updateDisplay);
+    appendToggle.addEventListener('change', updateDisplay);
 
     window.onload = () => {
       populateYearOrDecade();
